@@ -7,15 +7,15 @@
 
 #include "cache.hpp"
 
-template <typename T>
-class LRUCache final : public Cache<T> {
+template <typename Key, typename Tp>
+class LRUCache final : public Cache<Tp> {
 
-  std::list<T> storage_;
-  std::unordered_map<uint64_t, T> hash_map_;
+  std::list<Tp> storage_;
+  std::unordered_map<Key, Tp> hash_map_;
 
  public:
-  const T& LookUpUpdate(uint64_t key,
-                        std::function<const T&()> slow_get_page) override {}
+  const Tp& LookUpUpdate(Key key,
+                         std::function<const Key&()> slow_get_page) override {}
 };
 
 #endif  // LRU_CACHE_HPP

@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <functional>
 
-template <typename T>
+template <typename Key, typename Tp>
 class Cache {
-  virtual const T& LookUpUpdate(uint64_t key,
-                                std::function<const T&()> slow_get_page);
+  virtual const Tp& LookUpUpdate(Key key,
+                                 std::function<const Tp&()> slow_get_page);
 
   virtual ~Cache();
 };
