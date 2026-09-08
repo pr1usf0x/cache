@@ -11,7 +11,7 @@ class Cache {
   size_t access_count_{};
 
  public:
-  virtual const Tp& LookUpUpdate(Key key,
+  virtual const Tp LookUpUpdate(Key key,
                                  std::function<const Tp&()> slow_get_page) = 0;
 
   // getters
