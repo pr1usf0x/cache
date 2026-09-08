@@ -13,9 +13,9 @@ class TwoQueues : public Cache<Key, Tp> {
  public:
   explicit TwoQueues(size_t cache_cap_)
       : cache_cap_(cache_cap_),
-        in_cap_(std::max<size_t>(1, cache_cap_ * 0.1)),
-        out_cap_(std::max<size_t>(1, cache_cap_ * 0.3)),
-        lru_cap_(std::max<size_t>(1, cache_cap_ * 0.6)) {}
+        in_cap_(std::max<size_t>(1, cache_cap_ * kInCoeff)),
+        out_cap_(std::max<size_t>(1, cache_cap_ * kOutCoeff)),
+        lru_cap_(std::max<size_t>(1, cache_cap_ * kLruCoeff)) {}
 
   Tp LookupUpdate(const Key& key,
                   std::function<Tp(const Key& key)> slow_get_page) override {
@@ -39,6 +39,10 @@ class TwoQueues : public Cache<Key, Tp> {
   }
 
  private:
+  static constexpr double kInCoeff = 0.1;
+  static constexpr double kOutCoeff = 0.3;
+  static constexpr double kLruCoeff = 0.6;
+
   enum class CacheType { kIn, kOut, kLru };
 
   struct CacheNode {
