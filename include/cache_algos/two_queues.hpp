@@ -10,89 +10,93 @@
 
 enum class CacheType { kIn, kOut, kLru };
 
-template <typename T, typename U>
+template <typename Key, typename Tp>
 struct CacheNode {
-  T key;
-  U val;
+  Key key;
+  Tp val;
 };
 
-template <typename T, typename U>
+template <typename Key, typename Tp>
 struct ElInfo {
   CacheType cache_type;
-  typename std::list<CacheNode<T, U>>::iterator list_it;
-  typename std::list<T>::iterator key_it;
+  typename std::list<CacheNode<Key, Tp>>::iterator list_it;
+  typename std::list<Key>::iterator key_it;
 };
 
-template <typename T, typename U>
-class TwoQueues : public BaseAlgorithm<T, U> {
+template <typename Key, typename Tp>
+class TwoQueues : public Cache<Key, Tp> {
  public:
-  explicit TwoQueues(size_t cache_cap)
-      : cache_cap(cache_cap),
-        in_cap(std::max<size_t>(1, cache_cap * 0.1)),
-        out_cap(std::max<size_t>(1, cache_cap * 0.3)),
-        lru_cap(std::max<size_t>(1, cache_cap * 0.6)) {}
+  explicit TwoQueues(size_t cache_cap_)
+      : cache_cap_(cache_cap_),
+        in_cap_(std::max<size_t>(1, cache_cap_ * 0.1)),
+        out_cap_(std::max<size_t>(1, cache_cap_ * 0.3)),
+        lru_cap_(std::max<size_t>(1, cache_cap_ * 0.6)) {}
 
-  U LookupUpdate(const T& key,
-                 std::function<U(const T& key)> slow_get_page) override {
-    auto hash_it = data_base.find(key);
-    if (hash_it == data_base.end()) {
+  Tp LookupUpdate(const Key& key,
+                  std::function<Tp(const Key& key)> slow_get_page) override {
+    auto hash_it = data_base_.find(key);
+    if (hash_it == data_base_.end()) {
       return AbsoluteMiss(key, slow_get_page);
     }
     switch (hash_it->second.cache_type) {
       case CacheType::kLru:
         return LruHit(hash_it);
       case CacheType::kOut:
-        return OutHit(key, hash_it);
+        return OutHit(key, hash_it, slow_get_page);
       case CacheType::kIn:
         return (hash_it->second).list_it->val;
       default:
+        break;
     }
     return {};
   }
 
  private:
-  size_t cache_cap;
-  size_t in_cap;
-  size_t out_cap;
-  size_t lru_cap;
-  std::list<CacheNode<T, U>> in_cache;
-  std::list<T> out_cache;
-  std::list<CacheNode<T, U>> lru_cache;
-  std::unordered_map<T, ElInfo<T, U>> data_base;
+  size_t cache_cap_;
+  size_t in_cap_;
+  size_t out_cap_;
+  size_t lru_cap_;
+  std::list<CacheNode<Key, Tp>> in_cache_;
+  std::list<Key> out_cache_;
+  std::list<CacheNode<Key, Tp>> lru_cache_;
+  std::unordered_map<Key, ElInfo<Key, Tp>> data_base_;
 
-  U AbsoluteMiss(const T& key, std::function<U(const T& key)> slow_get_page) {
-    U old_elem = slow_get_page(key);
-    if (in_cache.size() >= in_cap) {
-      auto node = in_cache.back();
-      in_cache.pop_back();
-      if (out_cache.size() >= out_cap) {
-        T out_key = out_cache.back();
-        out_cache.pop_back();
-        data_base.erase(out_key);
+  Tp AbsoluteMiss(const Key& key,
+                  std::function<Tp(const Key& key)> slow_get_page) {
+    Tp old_elem = slow_get_page(key);
+    if (in_cache_.size() >= in_cap_) {
+      auto node = in_cache_.back();
+      in_cache_.pop_back();
+      if (out_cache_.size() >= out_cap_) {
+        Key out_key = out_cache_.back();
+        out_cache_.pop_back();
+        data_base_.erase(out_key);
       }
-      auto pos = out_cache.emplace(out_cache.begin(), node.key);
-      data_base[node.key] = {CacheType::Out, {}, pos};
+      auto pos = out_cache_.emplace(out_cache_.begin(), node.key);
+      data_base_[node.key] = {CacheType::kOut, {}, pos};
     }
-    auto pos = in_cache.emplace(in_cache.begin(), {key, old_elem});
-    data_base[key] = {CacheType::In, pos, {}};
+    auto pos = in_cache_.emplace(in_cache_.begin(), {key, old_elem});
+    data_base_[key] = {CacheType::kIn, pos, {}};
     return old_elem;
   }
-  U LruHit(typename std::unordered_map<T, ElInfo<T, U>>::iterator hash_it) {
+  Tp LruHit(
+      typename std::unordered_map<Key, ElInfo<Key, Tp>>::iterator hash_it) {
     auto list_it = hash_it->second.list_it;
-    lru_cache.splice(lru_cache.begin(), lru_cache, list_it);
-    return lru_cache.front().val;
+    lru_cache_.splice(lru_cache_.begin(), lru_cache_, list_it);
+    return lru_cache_.front().val;
   }
-  U OutHit(const T& key,
-           typename std::unordered_map<T, ElInfo<T, U>>::iterator hash_it) {
-    U old_elem = slow_get_page(key);
-    out_cache.erase(hash_it->second.key_it);
-    if (lru_cache.size() >= lru_cap) {
-      auto node = lru_cache.back();
-      lru_cache.pop_back();
-      data_base.erase(node.key);
+  Tp OutHit(const Key& key,
+            typename std::unordered_map<Key, ElInfo<Key, Tp>>::iterator hash_it,
+            std::function<Tp(const Key& key)> slow_get_page) {
+    Tp old_elem = slow_get_page(key);
+    out_cache_.erase(hash_it->second.key_it);
+    if (lru_cache_.size() >= lru_cap_) {
+      auto node = lru_cache_.back();
+      lru_cache_.pop_back();
+      data_base_.erase(node.key);
     }
-    auto pos = lru_cache.emplace(lru_cache.begin(), {key, old_elem});
-    data_base[key] = {CacheType::Lru, pos, {}};
+    auto pos = lru_cache_.emplace(lru_cache_.begin(), {key, old_elem});
+    data_base_[key] = {CacheType::kLru, pos, {}};
     return old_elem;
   }
 };
