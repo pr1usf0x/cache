@@ -10,7 +10,6 @@
 template <typename Key, typename Tp>
 class LRUCache final : public Cache<Tp, Key> {
  private:
-
   std::list<Tp> storage_;
   std::unordered_map<Key, Tp> hash_map_;
 
@@ -19,12 +18,8 @@ class LRUCache final : public Cache<Tp, Key> {
                          std::function<const Key&()> slow_get_page) override {
     auto& el = hash_map_.find(key);
     if (el != hash_map_.end()) {
-        return el;
+      return el;
     }
-
-
-
-
   }
 };
 

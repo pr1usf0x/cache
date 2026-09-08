@@ -2,7 +2,9 @@
 
 int main() {
 
-  auto z = [](){return 0;};
+  auto z = []() {
+    return 0;
+  };
 
   return 0;
 }
