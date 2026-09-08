@@ -8,10 +8,12 @@
 #include "cache.hpp"
 
 template <typename Key, typename Tp>
-class LRUCache final : public Cache<Tp, Key> {
+class LRUCache final : public Cache<Key, Tp> {
  private:
   std::list<Tp> storage_;
-  std::unordered_map<Key, Tp> hash_map_;
+  using iterator_ = std::list<Tp>::iterator;
+
+  std::unordered_map<Key, size_t> hash_map_;
 
  public:
   const Tp& LookUpUpdate(Key key,

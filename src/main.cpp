@@ -1,10 +1,10 @@
-#include "cache.hpp"
+#include <cstdint>
+
+#include "cache_algos/LRU_cache.hpp"
 
 int main() {
 
-  auto z = []() {
-    return 0;
-  };
+  LRUCache <uint64_t, uint64_t> meow {};
 
   return 0;
 }
