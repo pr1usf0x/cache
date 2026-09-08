@@ -11,8 +11,8 @@ class Cache {
   size_t access_count_{};
 
  public:
-  virtual const Tp LookUpUpdate(Key key,
-                                 std::function<const Tp&()> slow_get_page) = 0;
+  virtual Tp LookUpUpdate(Key key,
+                          std::function<const Tp()> slow_get_page) = 0;
 
   // getters
   size_t GetCacheMissCount() const { return misses_count_; };

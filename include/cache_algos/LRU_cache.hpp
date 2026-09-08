@@ -15,7 +15,7 @@ class LRUCache final : public Cache<Key, Tp> {
 
  public:
   const Tp& LookUpUpdate(Key key,
-                         std::function<const Key&()> slow_get_page) override {
+                         std::function<const Tp()> slow_get_page) override {
     auto& el = hash_map_.find(key);
     if (el != hash_map_.end()) {
       return el;
