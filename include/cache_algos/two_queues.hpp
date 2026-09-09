@@ -19,7 +19,7 @@ class TwoQueues : public Cache<Key, Tp> {
         out_cap_(std::max<size_t>(1, cache_cap_ * kOutCoeff)),
         lru_cap_(std::max<size_t>(1, cache_cap_ * kLruCoeff)) {}
 
-  Tp LookupUpdate(const Key& key,
+  Tp LookUpUpdate(const Key& key,
                   std::function<Tp(const Key& key)> slow_get_page) override {
     auto hash_it = data_base_.find(key);
     if (hash_it == data_base_.end()) {
@@ -102,7 +102,7 @@ class TwoQueues : public Cache<Key, Tp> {
       data_base_[node.key] = {CacheType::kOut, {}, pos};
     }
 
-    auto pos = in_cache_.emplace(in_cache_.begin(), {key, old_elem});
+    auto pos = in_cache_.emplace(in_cache_.begin(), CacheNode{key, old_elem});
     data_base_[key] = {CacheType::kIn, pos, {}};
 
     return old_elem;
@@ -127,7 +127,7 @@ class TwoQueues : public Cache<Key, Tp> {
       data_base_.erase(node.key);
     }
 
-    auto pos = lru_cache_.emplace(lru_cache_.begin(), {key, old_elem});
+    auto pos = lru_cache_.emplace(lru_cache_.begin(), CacheNode{key, old_elem});
     data_base_[key] = {CacheType::kLru, pos, {}};
 
     return old_elem;
