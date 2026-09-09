@@ -1,5 +1,5 @@
-#ifndef TMP_CACHE_HPP_
-#define TMP_CACHE_HPP_
+#ifndef LRU_CACHE_HPP_
+#define LRU_CACHE_HPP_
 
 #include <cassert>
 #include <cstddef>
@@ -51,4 +51,4 @@ class LruCache final : public Cache<Key, Tp> {
   }
 };
 
-#endif  // TMP_CACHE_HPP
+#endif  // LRU_CACHE_HPP
