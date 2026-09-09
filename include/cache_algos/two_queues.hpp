@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <functional>
 #include <list>
+#include <ostream>
+#include <string>
 #include <unordered_map>
 
 #include "cache.hpp"
@@ -36,6 +38,22 @@ class TwoQueues : public Cache<Key, Tp> {
     }
 
     return {};
+  }
+
+  void Dump(std::ostream& out) const {
+    out << "\n=== TWO QUEUES CACHE DUMP ===\n";
+
+    DisplayTitle(out);
+
+    DisplayKeyValueCache(out, in_cache_, "\n--- IN CACHE ---\n");
+
+    DisplayOutCache(out);
+
+    DisplayKeyValueCache(out, lru_cache_, "\n--- LRU CACHE ---\n");
+
+    DisplayDatabase(out);
+
+    out << "=============================\n\n";
   }
 
  private:
@@ -90,8 +108,7 @@ class TwoQueues : public Cache<Key, Tp> {
     return old_elem;
   }
 
-  Tp LruHit(
-      typename std::unordered_map<Key, ElInfo>::iterator hash_it) {
+  Tp LruHit(typename std::unordered_map<Key, ElInfo>::iterator hash_it) {
     auto list_it = hash_it->second.list_it;
     lru_cache_.splice(lru_cache_.begin(), lru_cache_, list_it);
 
@@ -114,6 +131,66 @@ class TwoQueues : public Cache<Key, Tp> {
     data_base_[key] = {CacheType::kLru, pos, {}};
 
     return old_elem;
+  }
+
+  void DisplayTitle(std::ostream& out) const {
+    size_t in_sz = in_cache_.size();
+    size_t out_sz = out_cache_.size();
+    size_t lru_sz = lru_cache_.size();
+    size_t total_sz = in_sz + out_sz + lru_sz;
+
+    out << "Total Capacity: " << cache_cap_ << " | Total Elements: " << total_sz
+        << '\n';
+
+    out << "IN: " << in_sz << "/" << in_cap_ << " | "
+        << "OUT: " << out_sz << "/" << out_cap_ << " | "
+        << "LRU: " << lru_sz << "/" << lru_cap_ << '\n';
+  }
+
+  void DisplayKeyValueCache(std::ostream& out,
+                            const std::list<CacheNode>& cache_list,
+                            const std::string& message) const {
+    out << message;
+    size_t num = 1;
+
+    for (auto it = cache_list.begin(); it != cache_list.end(); ++it) {
+      out << num << ". Key: " << it->key << " | Val: " << it->val << '\n';
+      ++num;
+    }
+  }
+
+  void DisplayOutCache(std::ostream& out) const {
+    out << "\n--- OUT CACHE ---\n";
+    size_t num = 1;
+
+    for (auto it = out_cache_.begin(); it != out_cache_.end(); ++it) {
+      out << num << ". Key: " << *it << '\n';
+      ++num;
+    }
+  }
+
+  void DisplayDatabase(std::ostream& out) const {
+    out << "\n--- DATA BASE ---\n";
+    size_t num = 1;
+
+    for (auto it = data_base_.begin(); it != data_base_.end(); ++it) {
+      out << num << ". Key: " << it->first << " --> ";
+
+      switch (it->second.cache_type) {
+        case CacheType::kIn:
+          out << "[IN]\n";
+          break;
+        case CacheType::kOut:
+          out << "[OUT]\n";
+          break;
+        case CacheType::kLru:
+          out << "[LRU]\n";
+          break;
+        default:
+          break;
+      }
+      ++num;
+    }
   }
 };
 
