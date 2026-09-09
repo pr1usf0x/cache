@@ -21,6 +21,8 @@ class TwoQueues : public Cache<Key, Tp> {
 
   Tp LookUpUpdate(const Key& key,
                   std::function<Tp(const Key& key)> slow_get_page) override {
+    this->access_count_++;
+
     auto hash_it = data_base_.find(key);
     if (hash_it == data_base_.end()) {
       return AbsoluteMiss(key, slow_get_page);
@@ -86,6 +88,8 @@ class TwoQueues : public Cache<Key, Tp> {
 
   Tp AbsoluteMiss(const Key& key,
                   std::function<Tp(const Key& key)> slow_get_page) {
+    this->misses_count_++;
+
     Tp old_elem = slow_get_page(key);
 
     if (in_cache_.size() >= in_cap_) {
@@ -118,6 +122,8 @@ class TwoQueues : public Cache<Key, Tp> {
   Tp OutHit(const Key& key,
             typename std::unordered_map<Key, ElInfo>::iterator hash_it,
             std::function<Tp(const Key& key)> slow_get_page) {
+    this->misses_count_++;
+
     Tp old_elem = slow_get_page(key);
     out_cache_.erase(hash_it->second.key_it);
 
