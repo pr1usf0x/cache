@@ -20,7 +20,7 @@ class LRUCache final : public Cache<Key, Tp> {
   std::unordered_map<Key, list_iter> hash_map_;
 
  public:
-  explicit LRUCache(size_t cap) : cache_cap_(cap) {};
+  explicit LRUCache(size_t cap) : cache_cap_(std::max<size_t>(cap, 1)) {};
 
   Tp LookUpUpdate(Key key, std::function<Tp()> slow_get_page) override {
     assert(storage_.size() <= cache_cap_);
@@ -40,11 +40,12 @@ class LRUCache final : public Cache<Key, Tp> {
     Tp element_copy = slow_get_page();
 
     if (storage_.size() == cache_cap_) {
-      storage_.pop_back();
-      // hash_map_.erase();
+      auto del_list_it = storage_.pop_back();
+      hash_map_.erase(del_list_it->first);
     }
 
-    storage_.push_front(std::make_pair(key, element_copy));
+    auto list_it_new = storage_.push_front(std::make_pair(key, element_copy));
+    hash_map_.insert(key, list_it_new);
 
     return element_copy;
   }
