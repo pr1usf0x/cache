@@ -12,7 +12,7 @@ class Cache {
 
  public:
   virtual Tp LookUpUpdate(Key key,
-                          std::function<const Tp()> slow_get_page) = 0;
+                          std::function<Tp()> slow_get_page) = 0;
 
   // getters
   size_t GetCacheMissCount() const { return misses_count_; };
