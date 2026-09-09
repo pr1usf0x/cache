@@ -1,5 +1,5 @@
-#ifndef LRU_CACHE_HPP_
-#define LRU_CACHE_HPP_
+#ifndef TMP_CACHE_HPP_
+#define TMP_CACHE_HPP_
 
 #include <cassert>
 #include <cstddef>
@@ -11,7 +11,7 @@
 #include "cache.hpp"
 
 template <typename Key, typename Tp>
-class LRUCache final : public Cache<Key, Tp> {
+class LruCache final : public Cache<Key, Tp> {
  private:
   using list_iter = typename std::list<std::pair<Key, Tp>>::iterator;
 
@@ -20,7 +20,7 @@ class LRUCache final : public Cache<Key, Tp> {
   std::unordered_map<Key, list_iter> hash_map_;
 
  public:
-  explicit LRUCache(size_t cap) : cache_cap_(std::max<size_t>(cap, 1)) {};
+  explicit LruCache(size_t cap) : cache_cap_(std::max<size_t>(cap, 1)) {};
 
   Tp LookUpUpdate(Key key, std::function<Tp()> slow_get_page) override {
     assert(storage_.size() <= cache_cap_);
@@ -51,4 +51,4 @@ class LRUCache final : public Cache<Key, Tp> {
   }
 };
 
-#endif  // LRU_CACHE_HPP
+#endif  // TMP_CACHE_HPP
