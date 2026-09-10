@@ -13,7 +13,7 @@
 template <typename Key, typename Tp>
 class Arc : public Cache<Key, Tp> {
  public:
-  explicit Arc(int ram_cap) : ram_cap_(ram_cap), storage_cap_(2 * ram_cap) {}
+  explicit Arc(size_t ram_cap) : ram_cap_(ram_cap), storage_cap_(2 * ram_cap) {}
 
   Tp LookUpUpdate(const Key& key,
                   std::function<Tp(const Key& key)> slow_get_page) override {
@@ -72,13 +72,13 @@ class Arc : public Cache<Key, Tp> {
     typename std::list<Key>::iterator key_it;
   };
 
-  static constexpr int kSingleStep = 1;
-  static constexpr int kMinCap = 0;
-  static constexpr int kMinSz = 1;
+  static constexpr size_t kSingleStep = 1;
+  static constexpr size_t kMinCap = 0;
+  static constexpr size_t kMinSz = 1;
 
-  int ram_cap_;
-  int storage_cap_;
-  int adapt_param_ = 0;
+  size_t ram_cap_;
+  size_t storage_cap_;
+  size_t adapt_param_ = 0;
   bool bottom_2_hit = true;
   bool bottom_2_miss = false;
 
@@ -109,9 +109,9 @@ class Arc : public Cache<Key, Tp> {
                     std::function<Tp(const Key& key)> slow_get_page) {
     ++(this->misses_count_);
 
-    int bottom_1_sz = std::max<int>(kMinSz, bottom_1.size());
-    int bottom_2_sz = bottom_2.size();
-    int delta =
+    size_t bottom_1_sz = std::max(kMinSz, bottom_1.size());
+    size_t bottom_2_sz = bottom_2.size();
+    size_t delta =
         (bottom_1_sz >= bottom_2_sz ? kSingleStep : bottom_2_sz / bottom_1_sz);
 
     adapt_param_ = std::min(ram_cap_, adapt_param_ + delta);
@@ -134,12 +134,12 @@ class Arc : public Cache<Key, Tp> {
       std::function<Tp(const Key& key)> slow_get_page) {
     ++(this->misses_count_);
 
-    int bottom_1_sz = bottom_1.size();
-    int bottom_2_sz = std::max<int>(kMinSz, bottom_2.size());
-    int delta =
+    size_t bottom_1_sz = bottom_1.size();
+    size_t bottom_2_sz = std::max(kMinSz, bottom_2.size());
+    size_t delta =
         (bottom_2_sz >= bottom_1_sz ? kSingleStep : bottom_1_sz / bottom_2_sz);
 
-    adapt_param_ = std::max<int>(kMinCap, adapt_param_ - delta);
+    adapt_param_ = (adapt_param_ > delta ? adapt_param_ - delta : kMinCap);
 
     Tp elem = slow_get_page(key);
 
@@ -159,7 +159,7 @@ class Arc : public Cache<Key, Tp> {
 
     int cache_1_cap = top_1.size() + bottom_1.size();
     if (cache_1_cap >= ram_cap_) {
-      if (static_cast<int>(top_1.size()) < ram_cap_) {
+      if (top_1.size() < ram_cap_) {
         Key bot_key = bottom_1.back();
         bottom_1.pop_back();
         data_base_.erase(bot_key);
@@ -177,7 +177,7 @@ class Arc : public Cache<Key, Tp> {
         data_base_.erase(bot_key);
         --total_cap;
       }
-      if (static_cast<int>(top_1.size() + top_2.size()) >= ram_cap_) {
+      if (top_1.size() + top_2.size() >= ram_cap_) {
         Replace(bottom_2_miss);
       }
     }
@@ -195,8 +195,8 @@ class Arc : public Cache<Key, Tp> {
 
   void Replace(bool bottom_2_hit) {
     bool clear_top_1 =
-        !top_1.empty() && (static_cast<int>(top_1.size()) > adapt_param_ ||
-                           (static_cast<int>(top_1.size()) == adapt_param_ && bottom_2_hit));
+        !top_1.empty() && (top_1.size() > adapt_param_ ||
+                           (top_1.size() == adapt_param_ && bottom_2_hit));
 
     if (top_2.empty() || clear_top_1) {
       if (top_1.empty())
