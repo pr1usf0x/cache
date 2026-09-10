@@ -11,8 +11,10 @@
 
 #include "cache.hpp"
 
+namespace cache {
+
 template <typename Key, typename Tp>
-class LruCache final : public Cache<Key, Tp> {
+class Lru final : public Cache<Key, Tp> {
  private:
   using list_iter = typename std::list<std::pair<Key, Tp>>::iterator;
 
@@ -21,9 +23,10 @@ class LruCache final : public Cache<Key, Tp> {
   std::unordered_map<Key, list_iter> hash_map_;
 
  public:
-  explicit LruCache(size_t cap) : cache_cap_(std::max<size_t>(cap, 1)) {};
+  explicit Lru(size_t cap) : cache_cap_(std::max<size_t>(cap, 1)) {};
 
-  Tp LookUpUpdate(const Key& key, std::function<Tp(const Key& key)> slow_get_page) override {
+  Tp LookUpUpdate(const Key& key,
+                  std::function<Tp(const Key& key)> slow_get_page) override {
     assert(storage_.size() <= cache_cap_);
 
     this->access_count_++;
@@ -51,5 +54,6 @@ class LruCache final : public Cache<Key, Tp> {
     return element_copy;
   }
 };
+}  // namespace cache
 
 #endif  // LRU_CACHE_HPP

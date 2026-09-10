@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <functional>
 
+namespace cache {
+
 template <typename Key, typename Tp>
 class Cache {
  protected:
@@ -20,5 +22,6 @@ class Cache {
 
   virtual ~Cache() = default;
 };
+} // namespace cache
 
 #endif  // CACHE_HPP_

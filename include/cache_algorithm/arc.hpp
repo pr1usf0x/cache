@@ -10,6 +10,8 @@
 
 #include "cache.hpp"
 
+namespace cache {
+
 template <typename Key, typename Tp>
 class Arc : public Cache<Key, Tp> {
  public:
@@ -281,5 +283,6 @@ class Arc : public Cache<Key, Tp> {
     }
   }
 };
+} // namespace cache
 
 #endif

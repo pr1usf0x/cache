@@ -13,14 +13,14 @@ int LoadPage(const int& key) {
 // LRU cache tests
 // Evicts the least recently used page when the cache is full.
 TEST(LruCacheTest, ConstructorInitializesCountersToZero) {
-  LruCache<int, int> cache(2);
+  cache::Lru<int, int> cache(2);
 
   EXPECT_EQ(cache.GetCacheMissCount(), 0);
   EXPECT_EQ(cache.GetAccessCount(), 0);
 }
 
 TEST(LruCacheTest, FirstLookupLoadsPage) {
-  LruCache<int, int> cache(2);
+  cache::Lru<int, int> cache(2);
 
   EXPECT_EQ(cache.LookUpUpdate(7, LoadPage), 70);
   EXPECT_EQ(cache.GetCacheMissCount(), 1);
@@ -28,7 +28,7 @@ TEST(LruCacheTest, FirstLookupLoadsPage) {
 }
 
 TEST(LruCacheTest, RepeatedLookupUsesCachedPage) {
-  LruCache<int, int> cache(2);
+  cache::Lru<int, int> cache(2);
 
   EXPECT_EQ(cache.LookUpUpdate(7, LoadPage), 70);
   EXPECT_EQ(cache.LookUpUpdate(7, [](const int&) { return 700; }), 70);
@@ -37,8 +37,8 @@ TEST(LruCacheTest, RepeatedLookupUsesCachedPage) {
 }
 
 TEST(LruCacheTest, InstancesHaveIndependentState) {
-  LruCache<int, int> first(2);
-  LruCache<int, int> second(2);
+  cache::Lru<int, int> first(2);
+  cache::Lru<int, int> second(2);
 
   EXPECT_EQ(first.LookUpUpdate(7, LoadPage), 70);
   EXPECT_EQ(second.GetCacheMissCount(), 0);
@@ -46,7 +46,7 @@ TEST(LruCacheTest, InstancesHaveIndependentState) {
 }
 
 TEST(LruCacheTest, HoldsTwoPages) {
-  LruCache<int, int> cache(2);
+  cache::Lru<int, int> cache(2);
 
   EXPECT_EQ(cache.LookUpUpdate(1, LoadPage), 10);
   EXPECT_EQ(cache.LookUpUpdate(2, LoadPage), 20);
@@ -61,7 +61,7 @@ TEST(LruCacheTest, HoldsTwoPages) {
 
 // LRU cache: a requested capacity of zero is increased to one.
 TEST(LruCacheTest, ZeroCapacityIsClampedToOne) {
-  LruCache<int, int> cache(0);
+  cache::Lru<int, int> cache(0);
 
   EXPECT_EQ(cache.LookUpUpdate(1, LoadPage), 10);
   EXPECT_EQ(cache.LookUpUpdate(1, LoadPage), 10);
@@ -74,7 +74,7 @@ TEST(LruCacheTest, ZeroCapacityIsClampedToOne) {
 }
 
 TEST(LruCacheTest, HitProtectsLeastRecentPageFromEviction) {
-  LruCache<int, int> cache(2);
+  cache::Lru<int, int> cache(2);
   cache.LookUpUpdate(1, LoadPage);
   cache.LookUpUpdate(2, LoadPage);
   cache.LookUpUpdate(1, LoadPage);
@@ -88,7 +88,7 @@ TEST(LruCacheTest, HitProtectsLeastRecentPageFromEviction) {
 }
 
 TEST(LruCacheTest, EvictedPageReloadsFreshValue) {
-  LruCache<int, int> cache(1);
+  cache::Lru<int, int> cache(1);
   int version = 0;
   auto loader = [&](const int&) { return ++version; };
 
@@ -104,14 +104,14 @@ TEST(LruCacheTest, EvictedPageReloadsFreshValue) {
 // TwoQueues cache tests
 // Stores new pages in IN and reused pages from OUT in LRU.
 TEST(TwoQueuesTest, ConstructorInitializesCountersToZero) {
-  TwoQueues<int, int> cache(20);
+  cache::TwoQueues<int, int> cache(20);
 
   EXPECT_EQ(cache.GetCacheMissCount(), 0);
   EXPECT_EQ(cache.GetAccessCount(), 0);
 }
 
 TEST(TwoQueuesTest, FirstLookupLoadsPage) {
-  TwoQueues<int, int> cache(20);
+  cache::TwoQueues<int, int> cache(20);
 
   EXPECT_EQ(cache.LookUpUpdate(7, LoadPage), 70);
   EXPECT_EQ(cache.GetCacheMissCount(), 1);
@@ -119,7 +119,7 @@ TEST(TwoQueuesTest, FirstLookupLoadsPage) {
 }
 
 TEST(TwoQueuesTest, RepeatedLookupUsesCachedPage) {
-  TwoQueues<int, int> cache(20);
+  cache::TwoQueues<int, int> cache(20);
 
   EXPECT_EQ(cache.LookUpUpdate(7, LoadPage), 70);
   EXPECT_EQ(cache.LookUpUpdate(7, [](const int&) { return 700; }), 70);
@@ -128,8 +128,8 @@ TEST(TwoQueuesTest, RepeatedLookupUsesCachedPage) {
 }
 
 TEST(TwoQueuesTest, InstancesHaveIndependentState) {
-  TwoQueues<int, int> first(20);
-  TwoQueues<int, int> second(20);
+  cache::TwoQueues<int, int> first(20);
+  cache::TwoQueues<int, int> second(20);
 
   EXPECT_EQ(first.LookUpUpdate(7, LoadPage), 70);
   EXPECT_EQ(second.GetCacheMissCount(), 0);
@@ -137,7 +137,7 @@ TEST(TwoQueuesTest, InstancesHaveIndependentState) {
 }
 
 TEST(TwoQueuesTest, InQueueHoldsTwoPages) {
-  TwoQueues<int, int> cache(20);
+  cache::TwoQueues<int, int> cache(20);
 
   // IN uses 10% of the capacity, so a cache of size 20 holds 2 pages in IN.
   EXPECT_EQ(cache.LookUpUpdate(1, LoadPage), 10);
@@ -152,7 +152,7 @@ TEST(TwoQueuesTest, InQueueHoldsTwoPages) {
 }
 
 TEST(TwoQueuesTest, InHitsDoNotChangeFifoEvictionOrder) {
-  TwoQueues<int, int> cache(20);  // IN holds two pages.
+  cache::TwoQueues<int, int> cache(20);  // IN holds two pages.
   cache.LookUpUpdate(1, LoadPage);
   cache.LookUpUpdate(2, LoadPage);
   cache.LookUpUpdate(1, LoadPage);
@@ -165,7 +165,7 @@ TEST(TwoQueuesTest, InHitsDoNotChangeFifoEvictionOrder) {
 }
 
 TEST(TwoQueuesTest, OutHitReloadsAndPromotesPage) {
-  TwoQueues<int, int> cache(10);  // IN holds one page.
+  cache::TwoQueues<int, int> cache(10);  // IN holds one page.
   cache.LookUpUpdate(1, LoadPage);
   cache.LookUpUpdate(2, LoadPage);
   EXPECT_EQ(cache.LookUpUpdate(1, [](const int&) { return 101; }), 101);
@@ -179,7 +179,7 @@ TEST(TwoQueuesTest, OutHitReloadsAndPromotesPage) {
 }
 
 TEST(TwoQueuesTest, ForgottenOutPageReturnsToInInsteadOfLru) {
-  TwoQueues<int, int> cache(10);  // OUT holds three keys.
+  cache::TwoQueues<int, int> cache(10);  // OUT holds three keys.
   for (int key = 1; key <= 5; ++key) {
     cache.LookUpUpdate(key, LoadPage);
   }
@@ -192,7 +192,7 @@ TEST(TwoQueuesTest, ForgottenOutPageReturnsToInInsteadOfLru) {
 }
 
 TEST(TwoQueuesTest, LruHitChangesVictimWhenPromotionFillsLru) {
-  TwoQueues<int, int> cache(5);  // IN = 1, OUT = 1, LRU = 3.
+  cache::TwoQueues<int, int> cache(5);  // IN = 1, OUT = 1, LRU = 3.
   for (int key : {1, 2, 1, 3, 2, 4, 3}) {
     cache.LookUpUpdate(key, LoadPage);
   }
@@ -211,7 +211,7 @@ TEST(TwoQueuesTest, LruHitChangesVictimWhenPromotionFillsLru) {
 TEST(TwoQueuesTest, SmallCapacitiesKeepEachQueueUsable) {
   for (size_t capacity : {0, 1, 2}) {
     SCOPED_TRACE(capacity);
-    TwoQueues<int, int> cache(capacity);
+    cache::TwoQueues<int, int> cache(capacity);
     for (int key : {1, 2, 1, 3, 2}) {
       EXPECT_EQ(cache.LookUpUpdate(key, LoadPage), LoadPage(key));
     }

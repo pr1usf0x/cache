@@ -10,6 +10,8 @@
 
 #include "cache.hpp"
 
+namespace cache {
+
 template <typename Key, typename Tp>
 class TwoQueues : public Cache<Key, Tp> {
  public:
@@ -199,5 +201,6 @@ class TwoQueues : public Cache<Key, Tp> {
     }
   }
 };
+} // namespace cache
 
 #endif
