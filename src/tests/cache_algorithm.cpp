@@ -2,6 +2,7 @@
 
 #include <cache_algorithm/lru_cache.hpp>
 #include <cache_algorithm/two_queues.hpp>
+#include <cache_algorithm/arc.hpp>
 
 namespace {
 int LoadPage(const int& key) {
