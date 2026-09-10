@@ -1,8 +1,8 @@
 #include <cstdint>
 
-int main() {
+#include "cache_algorithm/arc.hpp"
 
-  
+int main() {
 
   return 0;
 }
