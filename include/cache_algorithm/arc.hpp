@@ -157,7 +157,7 @@ class Arc : public Cache<Key, Tp> {
                   std::function<Tp(const Key& key)> slow_get_page) {
     ++(this->misses_count_);
 
-    int cache_1_cap = top_1.size() + bottom_1.size();
+    size_t cache_1_cap = top_1.size() + bottom_1.size();
     if (cache_1_cap >= ram_cap_) {
       if (top_1.size() < ram_cap_) {
         Key bot_key = bottom_1.back();
@@ -170,7 +170,7 @@ class Arc : public Cache<Key, Tp> {
         data_base_.erase(node.key);
       }
     } else if (cache_1_cap < ram_cap_) {
-      int total_cap = cache_1_cap + top_2.size() + bottom_2.size();
+      size_t total_cap = cache_1_cap + top_2.size() + bottom_2.size();
       if (total_cap == storage_cap_) {
         Key bot_key = bottom_2.back();
         bottom_2.pop_back();
