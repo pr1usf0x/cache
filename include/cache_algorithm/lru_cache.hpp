@@ -7,6 +7,7 @@
 #include <list>
 #include <stdexcept>
 #include <unordered_map>
+#include <utility>
 
 #include "cache.hpp"
 
@@ -22,7 +23,7 @@ class LruCache final : public Cache<Key, Tp> {
  public:
   explicit LruCache(size_t cap) : cache_cap_(std::max<size_t>(cap, 1)) {};
 
-  Tp LookUpUpdate(Key key, std::function<Tp()> slow_get_page) override {
+  Tp LookUpUpdate(const Key& key, std::function<Tp(const Key& key)> slow_get_page) override {
     assert(storage_.size() <= cache_cap_);
 
     this->access_count_++;
@@ -37,15 +38,15 @@ class LruCache final : public Cache<Key, Tp> {
 
     this->misses_count_++;
 
-    Tp element_copy = slow_get_page();
+    Tp element_copy = slow_get_page(key);
 
     if (storage_.size() == cache_cap_) {
-      auto del_list_it = storage_.pop_back();
-      hash_map_.erase(del_list_it->first);
+      hash_map_.erase(storage_.back().first);
+      storage_.pop_back();
     }
 
-    auto list_it_new = storage_.push_front(std::make_pair(key, element_copy));
-    hash_map_.insert(key, list_it_new);
+    storage_.push_front(std::make_pair(key, element_copy));
+    hash_map_.insert(std::make_pair(key, storage_.begin()));
 
     return element_copy;
   }
