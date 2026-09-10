@@ -13,15 +13,15 @@
 template <typename Key, typename Tp>
 class TwoQueues : public Cache<Key, Tp> {
  public:
-  explicit TwoQueues(size_t cache_cap_)
-      : cache_cap_(cache_cap_),
-        in_cap_(std::max<size_t>(1, cache_cap_ * kInCoeff)),
-        out_cap_(std::max<size_t>(1, cache_cap_ * kOutCoeff)),
-        lru_cap_(std::max<size_t>(1, cache_cap_ * kLruCoeff)) {}
+  explicit TwoQueues(size_t cache_cap)
+      : cache_cap_(cache_cap),
+        in_cap_(std::max<size_t>(1, cache_cap * kInCoeff)),
+        out_cap_(std::max<size_t>(1, cache_cap * kOutCoeff)),
+        lru_cap_(std::max<size_t>(1, cache_cap * kLruCoeff)) {}
 
   Tp LookUpUpdate(const Key& key,
                   std::function<Tp(const Key& key)> slow_get_page) override {
-    this->access_count_++;
+    ++(this->access_count_);
 
     auto hash_it = data_base_.find(key);
     if (hash_it == data_base_.end()) {
@@ -88,7 +88,7 @@ class TwoQueues : public Cache<Key, Tp> {
 
   Tp AbsoluteMiss(const Key& key,
                   std::function<Tp(const Key& key)> slow_get_page) {
-    this->misses_count_++;
+    ++(this->misses_count_);
 
     Tp old_elem = slow_get_page(key);
 
@@ -122,7 +122,7 @@ class TwoQueues : public Cache<Key, Tp> {
   Tp OutHit(const Key& key,
             typename std::unordered_map<Key, ElInfo>::iterator hash_it,
             std::function<Tp(const Key& key)> slow_get_page) {
-    this->misses_count_++;
+    ++(this->misses_count_);
 
     Tp old_elem = slow_get_page(key);
     out_cache_.erase(hash_it->second.key_it);
