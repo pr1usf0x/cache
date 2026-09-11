@@ -1,0 +1,9 @@
+{
+    "cache": [
+        {"name" : "lru",
+         "size" : 10},
+        {"name" : "arc",
+         "size" : 15}
+    ],
+    "dump" : true
+}
