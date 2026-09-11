@@ -14,7 +14,7 @@ namespace cache {
 template <typename Key, typename Tp>
 class Lfu : public Cache<Key, Tp> {
  public:
-  explicit Lfu(size_t cache_cap) : cache_cap_(cache_cap) {}
+  explicit Lfu(size_t cache_cap) : cache_sz_(kInitSize), cache_cap_(cache_cap) {}
 
   Tp LookUpUpdate(const Key& key,
                   std::function<Tp(const Key& key)> slow_get_page) override {
@@ -71,6 +71,7 @@ class Lfu : public Cache<Key, Tp> {
   };
 
   static constexpr size_t kMinCounter = 1;
+  static constexpr size_t kInitSize = 0;
 
   size_t cache_sz_;
   size_t cache_cap_;
@@ -180,7 +181,7 @@ class Lfu : public Cache<Key, Tp> {
     int num = 1;
     for (auto it = frequencies_.begin(); it != frequencies_.end(); ++it) {
       out << "\nList " << num << '\n';
-      DisplayList(out, it->cache_lit);
+      DisplayList(out, it->cache_list);
       ++num;
     }
   }
