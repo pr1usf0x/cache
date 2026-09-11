@@ -1,8 +1,21 @@
 #include <cstdint>
+#include <exception>
+#include <iostream>
 
-#include "cache_algorithm/arc.hpp"
+#include "config.hpp"
 
 int main() {
+  try {
+    cache::Config meow ("config/config.json");
 
+    const auto& vec = meow.GetCacheHierarchy();
+    for (const auto& i : vec) {
+      std::cout << static_cast<int>(i.first) << " " << i.second << "\n";
+    }
+    std::cout << meow.GetIsDumpEnabled() << "\n";
+
+  } catch (const std::exception& ex) {
+    std::cerr << ex.what();
+  }
   return 0;
 }

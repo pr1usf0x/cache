@@ -3,8 +3,16 @@
 
 #include <cstdint>
 #include <functional>
+#include <unordered_map>
 
 namespace cache {
+
+enum class type { kLru, kArc, kTwoQueues };
+const std::unordered_map<std::string, type> kStringToEnumTable = {
+    {"lru", type::kLru},
+    {"arc", type::kArc},
+    {"2q", type::kTwoQueues},
+};
 
 template <typename Key, typename Tp>
 class Cache {
@@ -14,7 +22,7 @@ class Cache {
 
  public:
   virtual Tp LookUpUpdate(const Key& key,
-                  std::function<Tp(const Key& key)> slow_get_page) = 0;
+                          std::function<Tp(const Key& key)> slow_get_page) = 0;
 
   // getters
   size_t GetCacheMissCount() const { return misses_count_; };
@@ -22,6 +30,6 @@ class Cache {
 
   virtual ~Cache() = default;
 };
-} // namespace cache
+}  // namespace cache
 
 #endif  // CACHE_HPP_
