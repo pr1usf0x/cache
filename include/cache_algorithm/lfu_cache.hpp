@@ -14,10 +14,12 @@ namespace cache {
 template <typename Key, typename Tp>
 class Lfu : public Cache<Key, Tp> {
  public:
-  explicit Lfu(size_t cache_cap) : cache_sz_(kInitSize), cache_cap_(cache_cap) {}
+  explicit Lfu(size_t cache_cap, loader<Key, Tp> slow_get_page)
+      : Cache<Key, Tp>(slow_get_page),
+        cache_sz_(kInitSize),
+        cache_cap_(cache_cap) {}
 
-  Tp LookUpUpdate(const Key& key,
-                  std::function<Tp(const Key& key)> slow_get_page) override {
+  Tp LookUpUpdate(const Key& key) override {
     ++(this->access_count_);
 
     auto hash_it = data_base_.find(key);
@@ -32,7 +34,7 @@ class Lfu : public Cache<Key, Tp> {
       ClearCache();
     }
 
-    return AddNewElement(key, slow_get_page);
+    return AddNewElement(key);
   }
 
   void Dump(std::ostream& out) const {
@@ -147,9 +149,8 @@ class Lfu : public Cache<Key, Tp> {
     --cache_sz_;
   }
 
-  Tp AddNewElement(const Key& key,
-                   std::function<Tp(const Key& key)> slow_get_page) {
-    Tp elem_val = slow_get_page(key);
+  Tp AddNewElement(const Key& key) {
+    Tp elem_val = this->slow_get_page_(key);
     ListIt first_list = frequencies_.begin();
 
     if (first_list != frequencies_.end() &&

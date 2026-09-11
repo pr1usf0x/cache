@@ -15,10 +15,12 @@ namespace cache {
 template <typename Key, typename Tp>
 class Arc : public Cache<Key, Tp> {
  public:
-  explicit Arc(size_t ram_cap) : ram_cap_(ram_cap), storage_cap_(2 * ram_cap) {}
+  explicit Arc(size_t ram_cap, loader<Key, Tp> slow_get_page)
+      : Cache<Key, Tp>(slow_get_page),
+        ram_cap_(ram_cap),
+        storage_cap_(2 * ram_cap) {}
 
-  Tp LookUpUpdate(const Key& key,
-                  std::function<Tp(const Key& key)> slow_get_page) override {
+  Tp LookUpUpdate(const Key& key) override {
     ++(this->access_count_);
     auto hash_it = data_base_.find(key);
 
@@ -31,15 +33,15 @@ class Arc : public Cache<Key, Tp> {
         case CacheType::kT2:
           return SecondTopHit(hash_it);
         case CacheType::kB1:
-          return FirstBottomHit(key, hash_it, slow_get_page);
+          return FirstBottomHit(key, hash_it);
         case CacheType::kB2:
-          return SecondBottomHit(key, hash_it, slow_get_page);
+          return SecondBottomHit(key, hash_it);
         default:
           break;
       }
     }
 
-    return AbsoluteMiss(key, slow_get_page);
+    return AbsoluteMiss(key);
   }
 
   void Dump(std::ostream& out) const {
@@ -107,8 +109,7 @@ class Arc : public Cache<Key, Tp> {
   }
 
   Tp FirstBottomHit(const Key& key,
-                    typename std::unordered_map<Key, ElInfo>::iterator& hash_it,
-                    std::function<Tp(const Key& key)> slow_get_page) {
+                    typename std::unordered_map<Key, ElInfo>::iterator& hash_it) {
     ++(this->misses_count_);
 
     size_t bottom_1_sz = std::max(kMinSz, bottom_1.size());
@@ -118,7 +119,7 @@ class Arc : public Cache<Key, Tp> {
 
     adapt_param_ = std::min(ram_cap_, adapt_param_ + delta);
 
-    Tp elem = slow_get_page(key);
+    Tp elem = this->slow_get_page_(key);
 
     bottom_1.erase(((hash_it->second).key_it));
 
@@ -132,8 +133,7 @@ class Arc : public Cache<Key, Tp> {
 
   Tp SecondBottomHit(
       const Key& key,
-      typename std::unordered_map<Key, ElInfo>::iterator& hash_it,
-      std::function<Tp(const Key& key)> slow_get_page) {
+      typename std::unordered_map<Key, ElInfo>::iterator& hash_it) {
     ++(this->misses_count_);
 
     size_t bottom_1_sz = bottom_1.size();
@@ -143,7 +143,7 @@ class Arc : public Cache<Key, Tp> {
 
     adapt_param_ = (adapt_param_ > delta ? adapt_param_ - delta : kMinCap);
 
-    Tp elem = slow_get_page(key);
+    Tp elem = this->slow_get_page_(key);
 
     bottom_2.erase(((hash_it->second).key_it));
 
@@ -155,8 +155,7 @@ class Arc : public Cache<Key, Tp> {
     return elem;
   }
 
-  Tp AbsoluteMiss(const Key& key,
-                  std::function<Tp(const Key& key)> slow_get_page) {
+  Tp AbsoluteMiss(const Key& key) {
     ++(this->misses_count_);
 
     size_t cache_1_cap = top_1.size() + bottom_1.size();
@@ -184,12 +183,11 @@ class Arc : public Cache<Key, Tp> {
       }
     }
 
-    return LoadNewElem(key, slow_get_page);
+    return LoadNewElem(key);
   }
 
-  Tp LoadNewElem(const Key& key,
-                 std::function<Tp(const Key& key)> slow_get_page) {
-    Tp elem = slow_get_page(key);
+  Tp LoadNewElem(const Key& key) {
+    Tp elem = this->slow_get_page_(key);
     auto top_1_it = top_1.emplace(top_1.begin(), CacheNode{key, elem});
     data_base_[key] = {CacheType::kT1, top_1_it, {}};
     return elem;

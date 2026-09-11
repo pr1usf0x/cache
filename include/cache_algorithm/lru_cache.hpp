@@ -1,6 +1,7 @@
 #ifndef LRU_CACHE_HPP_
 #define LRU_CACHE_HPP_
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <functional>
@@ -23,10 +24,10 @@ class Lru final : public Cache<Key, Tp> {
   std::unordered_map<Key, list_iter> hash_map_;
 
  public:
-  explicit Lru(size_t cap) : cache_cap_(std::max<size_t>(cap, 1)) {};
+  explicit Lru(size_t cap, loader<Key, Tp> slow_get_page)
+      : Cache<Key, Tp>(slow_get_page), cache_cap_(std::max<size_t>(cap, 1)) {};
 
-  Tp LookUpUpdate(const Key& key,
-                  std::function<Tp(const Key& key)> slow_get_page) override {
+  Tp LookUpUpdate(const Key& key) override {
     assert(storage_.size() <= cache_cap_);
 
     (this->access_count_)++;
@@ -41,7 +42,7 @@ class Lru final : public Cache<Key, Tp> {
 
     (this->misses_count_)++;
 
-    Tp element_copy = slow_get_page(key);
+    Tp element_copy = this->slow_get_page_(key);
 
     if (storage_.size() == cache_cap_) {
       hash_map_.erase(storage_.back().first);

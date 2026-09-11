@@ -15,26 +15,26 @@ namespace cache {
 template <typename Key, typename Tp>
 class TwoQueues : public Cache<Key, Tp> {
  public:
-  explicit TwoQueues(size_t cache_cap)
-      : cache_cap_(cache_cap),
+  explicit TwoQueues(size_t cache_cap, loader<Key, Tp> slow_get_page)
+      : Cache<Key, Tp>(slow_get_page),
+        cache_cap_(cache_cap),
         in_cap_(std::max<size_t>(1, cache_cap * kInCoeff)),
         out_cap_(std::max<size_t>(1, cache_cap * kOutCoeff)),
         lru_cap_(std::max<size_t>(1, cache_cap * kLruCoeff)) {}
 
-  Tp LookUpUpdate(const Key& key,
-                  std::function<Tp(const Key& key)> slow_get_page) override {
+  Tp LookUpUpdate(const Key& key) override {
     ++(this->access_count_);
 
     auto hash_it = data_base_.find(key);
     if (hash_it == data_base_.end()) {
-      return AbsoluteMiss(key, slow_get_page);
+      return AbsoluteMiss(key);
     }
 
     switch (hash_it->second.cache_type) {
       case CacheType::kLru:
         return LruHit(hash_it);
       case CacheType::kOut:
-        return OutHit(key, hash_it, slow_get_page);
+        return OutHit(key, hash_it);
       case CacheType::kIn:
         return (hash_it->second).list_it->val;
       default:
@@ -88,11 +88,10 @@ class TwoQueues : public Cache<Key, Tp> {
   std::list<CacheNode> lru_cache_;
   std::unordered_map<Key, ElInfo> data_base_;
 
-  Tp AbsoluteMiss(const Key& key,
-                  std::function<Tp(const Key& key)> slow_get_page) {
+  Tp AbsoluteMiss(const Key& key) {
     ++(this->misses_count_);
 
-    Tp old_elem = slow_get_page(key);
+    Tp old_elem = this->slow_get_page_(key);
 
     if (in_cache_.size() >= in_cap_) {
       auto node = in_cache_.back();
@@ -122,11 +121,10 @@ class TwoQueues : public Cache<Key, Tp> {
   }
 
   Tp OutHit(const Key& key,
-            typename std::unordered_map<Key, ElInfo>::iterator hash_it,
-            std::function<Tp(const Key& key)> slow_get_page) {
+            typename std::unordered_map<Key, ElInfo>::iterator hash_it) {
     ++(this->misses_count_);
 
-    Tp old_elem = slow_get_page(key);
+    Tp old_elem = this->slow_get_page_(key);
     out_cache_.erase(hash_it->second.key_it);
 
     if (lru_cache_.size() >= lru_cap_) {

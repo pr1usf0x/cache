@@ -3,27 +3,36 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <unordered_map>
 
 namespace cache {
+
+template <typename Key, typename Tp>
+using loader = std::function<Tp(Key)>;
 
 enum class type { kLru, kArc, kTwoQueues, kLfuCache };
 const std::unordered_map<std::string, type> kStringToEnumTable = {
     {"lru", type::kLru},
     {"arc", type::kArc},
     {"2q", type::kTwoQueues},
-    {"lfu", type::kLfuCache}
-};
+    {"lfu", type::kLfuCache}};
 
 template <typename Key, typename Tp>
 class Cache {
  protected:
   size_t misses_count_{};
   size_t access_count_{};
+  loader<Key, Tp> slow_get_page_;
 
  public:
-  virtual Tp LookUpUpdate(const Key& key,
-                          std::function<Tp(const Key& key)> slow_get_page) = 0;
+  explicit Cache(loader<Key, Tp> slow_get_page)
+      : slow_get_page_(slow_get_page) {};
+
+  virtual Tp LookUpUpdate(const Key& key) = 0;
+  void SwitchLoader(loader<Key, Tp> slow_get_page) {
+    slow_get_page_ = slow_get_page;
+  };
 
   // getters
   size_t GetCacheMissCount() const { return misses_count_; };
