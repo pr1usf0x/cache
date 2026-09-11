@@ -7,11 +7,12 @@
 
 namespace cache {
 
-enum class type { kLru, kArc, kTwoQueues };
+enum class type { kLru, kArc, kTwoQueues, kLfuCache };
 const std::unordered_map<std::string, type> kStringToEnumTable = {
     {"lru", type::kLru},
     {"arc", type::kArc},
     {"2q", type::kTwoQueues},
+    {"lfu", type::kLfuCache}
 };
 
 template <typename Key, typename Tp>

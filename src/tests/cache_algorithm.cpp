@@ -1,8 +1,13 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <algorithm>
+#include <random>
+#include <string>
+#include <vector>
 
 #include <cache_algorithm/arc.hpp>
+#include <cache_algorithm/lfu_cache.hpp>
 #include <cache_algorithm/lru_cache.hpp>
 #include <cache_algorithm/two_queues.hpp>
 
@@ -11,6 +16,197 @@ int LoadPage(const int& key) {
   return key * 10;
 }
 } // namespace
+
+// ============================================================================
+// === LFU cache ===
+// ============================================================================
+TEST(LfuCacheTest, ConstructorInitializesCountersToZero) {
+  cache::Lfu<int, int> cache(2);
+
+  EXPECT_EQ(cache.GetCacheMissCount(), 0);
+  EXPECT_EQ(cache.GetAccessCount(), 0);
+}
+
+TEST(LfuCacheTest, FirstLookupLoadsPage) {
+  cache::Lfu<int, int> cache(2);
+  int loader_calls = 0;
+  EXPECT_EQ(cache.LookUpUpdate(7, [&](const int& key) {
+    ++loader_calls;
+    EXPECT_EQ(key, 7);
+    return 70;
+  }), 70);
+  EXPECT_EQ(loader_calls, 1);
+  EXPECT_EQ(cache.GetCacheMissCount(), 1);
+  EXPECT_EQ(cache.GetAccessCount(), 1);
+}
+
+TEST(LfuCacheTest, RepeatedLookupDoesNotCallLoader) {
+  cache::Lfu<int, int> cache(2);
+  EXPECT_EQ(cache.LookUpUpdate(7, LoadPage), 70);
+  for (int i = 0; i < 100; ++i) {
+    EXPECT_EQ(cache.LookUpUpdate(7, [](const int&) {
+      ADD_FAILURE() << "Loader called on a cache hit";
+      return -1;
+    }), 70);
+  }
+  EXPECT_EQ(cache.GetCacheMissCount(), 1);
+  EXPECT_EQ(cache.GetAccessCount(), 101);
+}
+
+TEST(LfuCacheTest, InstancesHaveIndependentState) {
+  cache::Lfu<int, int> first(2);
+  cache::Lfu<int, int> second(2);
+  EXPECT_EQ(first.LookUpUpdate(7, LoadPage), 70);
+  EXPECT_EQ(second.GetAccessCount(), 0);
+  EXPECT_EQ(second.GetCacheMissCount(), 0);
+  EXPECT_EQ(second.LookUpUpdate(7, [](const int&) { return 700; }), 700);
+  EXPECT_EQ(first.LookUpUpdate(7, LoadPage), 70);
+}
+
+TEST(LfuCacheTest, EvictsLeastFrequentEvenWhenItWasUsedMostRecently) {
+  cache::Lfu<int, int> cache(2);
+  for (int key : {1, 1, 1, 2, 2, 3}) {
+    cache.LookUpUpdate(key, LoadPage);
+  }
+  EXPECT_EQ(cache.LookUpUpdate(1, LoadPage), 10);
+  EXPECT_EQ(cache.LookUpUpdate(3, LoadPage), 30);
+  EXPECT_EQ(cache.GetCacheMissCount(), 3);
+  EXPECT_EQ(cache.LookUpUpdate(2, [](const int&) { return 200; }), 200);
+  EXPECT_EQ(cache.GetCacheMissCount(), 4);
+  EXPECT_EQ(cache.GetAccessCount(), 9);
+}
+
+TEST(LfuCacheTest, EqualInitialFrequenciesEvictOldestPage) {
+  cache::Lfu<int, int> cache(2);
+  for (int key : {1, 2, 3}) {
+    cache.LookUpUpdate(key, LoadPage);
+  }
+  EXPECT_EQ(cache.LookUpUpdate(2, LoadPage), 20);
+  EXPECT_EQ(cache.LookUpUpdate(3, LoadPage), 30);
+  EXPECT_EQ(cache.GetCacheMissCount(), 3);
+  EXPECT_EQ(cache.LookUpUpdate(1, [](const int&) { return 100; }), 100);
+  EXPECT_EQ(cache.GetCacheMissCount(), 4);
+}
+
+TEST(LfuCacheTest, EqualPromotedFrequenciesEvictLeastRecentlyUsedPage) {
+  cache::Lfu<int, int> cache(2);
+  // Both pages reach frequency 2, but page 2 reaches it first.
+  for (int key : {1, 2, 2, 1, 3}) {
+    cache.LookUpUpdate(key, LoadPage);
+  }
+  EXPECT_EQ(cache.LookUpUpdate(1, LoadPage), 10);
+  EXPECT_EQ(cache.LookUpUpdate(3, LoadPage), 30);
+  EXPECT_EQ(cache.GetCacheMissCount(), 3);
+  EXPECT_EQ(cache.LookUpUpdate(2, [](const int&) { return 200; }), 200);
+  EXPECT_EQ(cache.GetCacheMissCount(), 4);
+}
+
+TEST(LfuCacheTest, CapacityOneReloadsEvictedPageWithFreshValue) {
+  cache::Lfu<int, int> cache(1);
+  int version = 0;
+  auto loader = [&](const int&) { return ++version; };
+  EXPECT_EQ(cache.LookUpUpdate(1, loader), 1);
+  EXPECT_EQ(cache.LookUpUpdate(1, loader), 1);
+  EXPECT_EQ(cache.LookUpUpdate(2, loader), 2);
+  EXPECT_EQ(cache.LookUpUpdate(1, loader), 3);
+  EXPECT_EQ(cache.LookUpUpdate(1, loader), 3);
+  EXPECT_EQ(version, 3);
+  EXPECT_EQ(cache.GetCacheMissCount(), 3);
+  EXPECT_EQ(cache.GetAccessCount(), 5);
+}
+
+TEST(LfuCacheTest, ReloadedPageStartsAtMinimumFrequency) {
+  cache::Lfu<int, int> cache(2);
+  for (int key : {1, 1, 2, 2, 2, 3, 1, 4}) {
+    cache.LookUpUpdate(key, LoadPage);
+  }
+  // Reloaded 1 has frequency 1 and is evicted by 4; 2 stays at 3.
+  EXPECT_EQ(cache.LookUpUpdate(2, LoadPage), 20);
+  EXPECT_EQ(cache.LookUpUpdate(4, LoadPage), 40);
+  EXPECT_EQ(cache.GetCacheMissCount(), 5);
+  EXPECT_EQ(cache.LookUpUpdate(1, [](const int&) { return 100; }), 100);
+  EXPECT_EQ(cache.GetCacheMissCount(), 6);
+}
+
+TEST(LfuCacheTest, WorkingSetFitsWithoutFurtherLoads) {
+  for (size_t capacity : {1, 2, 3, 16}) {
+    SCOPED_TRACE(capacity);
+    cache::Lfu<int, int> cache(capacity);
+    size_t loader_calls = 0;
+    auto loader = [&](const int& key) {
+      ++loader_calls;
+      return LoadPage(key);
+    };
+    for (int round = 0; round < 10; ++round) {
+      for (size_t key = 0; key < capacity; ++key) {
+        EXPECT_EQ(cache.LookUpUpdate(static_cast<int>(key), loader),
+                  LoadPage(static_cast<int>(key)));
+      }
+    }
+    EXPECT_EQ(loader_calls, capacity);
+    EXPECT_EQ(cache.GetCacheMissCount(), capacity);
+    EXPECT_EQ(cache.GetAccessCount(), 10 * capacity);
+  }
+}
+
+TEST(LfuCacheTest, SupportsStringKeysAndValues) {
+  cache::Lfu<std::string, std::string> cache(2);
+  auto loader = [](const std::string& key) { return "value:" + key; };
+  EXPECT_EQ(cache.LookUpUpdate("", loader), "value:");
+  EXPECT_EQ(cache.LookUpUpdate("hello", loader), "value:hello");
+  EXPECT_EQ(cache.LookUpUpdate("", loader), "value:");
+  EXPECT_EQ(cache.LookUpUpdate("world", loader), "value:world");
+  EXPECT_EQ(cache.LookUpUpdate("", loader), "value:");
+  EXPECT_EQ(cache.GetCacheMissCount(), 3);
+  EXPECT_EQ(cache.LookUpUpdate("hello", loader), "value:hello");
+  EXPECT_EQ(cache.GetCacheMissCount(), 4);
+}
+
+TEST(LfuCacheTest, MatchesReferenceModelAcrossChangingWorkingSets) {
+  // A linear reference model independent of the LFU frequency-list structure.
+  struct Entry {
+    int key;
+    int value;
+    size_t frequency;
+    size_t last_access;
+  };
+  for (size_t capacity : {1, 2, 3, 8, 16}) {
+    SCOPED_TRACE(capacity);
+    cache::Lfu<int, int> cache(capacity);
+    std::vector<Entry> model;
+    std::mt19937 random(42);
+    int expected_loads = 0;
+    int actual_loads = 0;
+    auto loader = [&](const int&) { return ++actual_loads; };
+    for (size_t step = 0; step < 2000; ++step) {
+      const int key = static_cast<int>(random() % (step % 100 < 50 ? 5 : 23));
+      SCOPED_TRACE(testing::Message() << "step=" << step << ", key=" << key);
+      auto found = std::find_if(model.begin(), model.end(),
+                                [&](const Entry& entry) { return entry.key == key; });
+      int expected_value;
+      if (found != model.end()) {
+        ++found->frequency;
+        found->last_access = step;
+        expected_value = found->value;
+      } else {
+        if (model.size() == capacity) {
+          auto victim = std::min_element(model.begin(), model.end(),
+              [](const Entry& a, const Entry& b) {
+                return a.frequency < b.frequency ||
+                       (a.frequency == b.frequency && a.last_access < b.last_access);
+              });
+          model.erase(victim);
+        }
+        expected_value = ++expected_loads;
+        model.push_back({key, expected_value, 1, step});
+      }
+      ASSERT_EQ(cache.LookUpUpdate(key, loader), expected_value);
+      ASSERT_EQ(actual_loads, expected_loads);
+      ASSERT_EQ(cache.GetCacheMissCount(), static_cast<size_t>(expected_loads));
+      ASSERT_EQ(cache.GetAccessCount(), step + 1);
+    }
+  }
+}
 
 // ============================================================================
 // === LRU cache ===

@@ -6,7 +6,7 @@
 
 int main() {
   try {
-    cache::Config meow ("config/config.json");
+    cache::Config meow("config/config.json");
 
     const auto& vec = meow.GetCacheHierarchy();
     for (const auto& i : vec) {

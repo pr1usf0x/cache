@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include "nlohmann/json_fwd.hpp"
 
 #include "cache.hpp"
 

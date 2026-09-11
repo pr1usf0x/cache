@@ -29,7 +29,7 @@ class Lru final : public Cache<Key, Tp> {
                   std::function<Tp(const Key& key)> slow_get_page) override {
     assert(storage_.size() <= cache_cap_);
 
-    this->access_count_++;
+    (this->access_count_)++;
 
     auto ht_it = hash_map_.find(key);
     if (ht_it != hash_map_.end()) {
@@ -39,7 +39,7 @@ class Lru final : public Cache<Key, Tp> {
       return list_it->second;
     }
 
-    this->misses_count_++;
+    (this->misses_count_)++;
 
     Tp element_copy = slow_get_page(key);
 
