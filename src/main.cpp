@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "config.hpp"
+#include "cache_hierarchy.hpp"
 
 int main() {
   try {

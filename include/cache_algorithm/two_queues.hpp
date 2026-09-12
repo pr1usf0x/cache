@@ -7,6 +7,7 @@
 #include <ostream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "cache.hpp"
 
@@ -16,7 +17,7 @@ template <typename Key, typename Tp>
 class TwoQueues : public Cache<Key, Tp> {
  public:
   explicit TwoQueues(size_t cache_cap, loader<Key, Tp> slow_get_page)
-      : Cache<Key, Tp>(slow_get_page),
+      : Cache<Key, Tp>(std::move(slow_get_page)),
         cache_cap_(cache_cap),
         in_cap_(std::max<size_t>(1, cache_cap * kInCoeff)),
         out_cap_(std::max<size_t>(1, cache_cap * kOutCoeff)),

@@ -6,6 +6,7 @@
 #include <list>
 #include <ostream>
 #include <unordered_map>
+#include <utility>
 
 #include "cache.hpp"
 
@@ -15,7 +16,7 @@ template <typename Key, typename Tp>
 class Lfu : public Cache<Key, Tp> {
  public:
   explicit Lfu(size_t cache_cap, loader<Key, Tp> slow_get_page)
-      : Cache<Key, Tp>(slow_get_page),
+      : Cache<Key, Tp>(std::move(slow_get_page)),
         cache_sz_(kInitSize),
         cache_cap_(cache_cap) {}
 

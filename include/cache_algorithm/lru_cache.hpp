@@ -25,7 +25,7 @@ class Lru final : public Cache<Key, Tp> {
 
  public:
   explicit Lru(size_t cap, loader<Key, Tp> slow_get_page)
-      : Cache<Key, Tp>(slow_get_page), cache_cap_(std::max<size_t>(cap, 1)) {};
+      : Cache<Key, Tp>(std::move(slow_get_page)), cache_cap_(std::max<size_t>(cap, 1)) {};
 
   Tp LookUpUpdate(const Key& key) override {
     assert(storage_.size() <= cache_cap_);

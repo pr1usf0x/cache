@@ -7,6 +7,7 @@
 #include <ostream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "cache.hpp"
 
@@ -16,7 +17,7 @@ template <typename Key, typename Tp>
 class Arc : public Cache<Key, Tp> {
  public:
   explicit Arc(size_t ram_cap, loader<Key, Tp> slow_get_page)
-      : Cache<Key, Tp>(slow_get_page),
+      : Cache<Key, Tp>(std::move(slow_get_page)),
         ram_cap_(ram_cap),
         storage_cap_(2 * ram_cap) {}
 
