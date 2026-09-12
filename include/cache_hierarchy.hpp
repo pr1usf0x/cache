@@ -2,6 +2,7 @@
 #define CACHE_HIERARCHY_HPP_
 
 #include <cassert>
+#include <iomanip>
 #include <memory>
 #include <stdexcept>
 #include <utility>
@@ -10,6 +11,7 @@
 #include "cache.hpp"
 #include "cache_algorithm/arc.hpp"
 #include "cache_algorithm/lfu_cache.hpp"
+#include "cache_algorithm/lirs_cache.hpp"
 #include "cache_algorithm/lru_cache.hpp"
 #include "cache_algorithm/two_queues.hpp"
 #include "config.hpp"
@@ -30,11 +32,14 @@ class CacheHierarchy {
       case type::kArc:
         return std::make_unique<Arc<Key, Tp>>(cap, std::move(slow_get_page));
       case type::kTwoQueues:
-        return std::make_unique<TwoQueues<Key, Tp>>(cap, std::move(slow_get_page));
+        return std::make_unique<TwoQueues<Key, Tp>>(cap,
+                                                    std::move(slow_get_page));
       case type::kLfu:
         return std::make_unique<Lfu<Key, Tp>>(cap, std::move(slow_get_page));
+      case type::kLirs:
+        return std::make_unique<Lirs<Key, Tp>>(cap, std::move(slow_get_page));
       default:
-        throw std::invalid_argument("Unknown cache type");
+        assert(0 && "Missed cache declaration");
     }
   };
 
@@ -45,7 +50,8 @@ class CacheHierarchy {
 
     auto next_loader = std::move(slow_get_page);
     for (auto it = cache_layers.crbegin(); it != cache_layers.crend(); ++it) {
-      auto layer = GetCacheByEnum(it->first, it->second, std::move(next_loader));
+      auto layer =
+          GetCacheByEnum(it->first, it->second, std::move(next_loader));
       auto* next_cache = layer.get();
       cache_vector_.push_back(std::move(layer));
 
@@ -57,6 +63,17 @@ class CacheHierarchy {
 
   Tp LookUpUpdate(const Key& key) {
     return cache_vector_.back()->LookUpUpdate(key);
+  }
+
+  void Dump(std::ostream& out) const {
+    size_t i = 0;
+    for (auto layer = cache_vector_.crbegin();
+         layer != cache_vector_.crend(); ++layer) {
+      out << "\n=============== Cache num:" << std::setw(4)
+          << i << " ==============\n";
+      (*layer)->Dump(out);
+      ++i;
+    }
   }
 };
 }  // namespace cache

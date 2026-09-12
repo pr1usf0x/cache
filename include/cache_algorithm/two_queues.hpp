@@ -45,7 +45,8 @@ class TwoQueues : public Cache<Key, Tp> {
     return {};
   }
 
-  void Dump(std::ostream& out) const {
+  // ================================== DUMP ==================================
+  void Dump(std::ostream& out) const override {
     out << "\n=== TWO QUEUES CACHE DUMP ===\n";
 
     DisplayTitle(out);
@@ -89,6 +90,7 @@ class TwoQueues : public Cache<Key, Tp> {
   std::list<CacheNode> lru_cache_;
   std::unordered_map<Key, ElInfo> data_base_;
 
+  // =============================== ALGORITHM ================================
   Tp AbsoluteMiss(const Key& key) {
     ++(this->misses_count_);
 
@@ -140,6 +142,7 @@ class TwoQueues : public Cache<Key, Tp> {
     return old_elem;
   }
 
+  // =============================== DUMP_HELP ================================
   void DisplayTitle(std::ostream& out) const {
     size_t in_sz = in_cache_.size();
     size_t out_sz = out_cache_.size();
@@ -199,6 +202,8 @@ class TwoQueues : public Cache<Key, Tp> {
       ++num;
     }
   }
+
+  // ==========================================================================
 };
 } // namespace cache
 

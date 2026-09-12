@@ -12,12 +12,13 @@ namespace cache {
 template <typename Key, typename Tp>
 using loader = std::function<Tp(const Key&)>;
 
-enum class type { kLru, kArc, kTwoQueues, kLfu };
+enum class type { kLru, kArc, kTwoQueues, kLfu, kLirs };
 const std::unordered_map<std::string, type> kStringToEnumTable = {
     {"lru", type::kLru},
     {"arc", type::kArc},
     {"2q", type::kTwoQueues},
-    {"lfu", type::kLfu}};
+    {"lfu", type::kLfu},
+    {"lirs", type::kLirs}};
 
 template <typename Key, typename Tp>
 class Cache {
@@ -34,6 +35,8 @@ class Cache {
   void SwitchLoader(loader<Key, Tp> slow_get_page) {
     slow_get_page_ = std::move(slow_get_page);
   };
+
+  virtual void Dump(std::ostream& out) const = 0;
 
   // getters
   size_t GetCacheMissCount() const { return misses_count_; };

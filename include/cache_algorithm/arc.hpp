@@ -45,7 +45,8 @@ class Arc : public Cache<Key, Tp> {
     return AbsoluteMiss(key);
   }
 
-  void Dump(std::ostream& out) const {
+  // ================================== DUMP ==================================
+  void Dump(std::ostream& out) const override {
     out << "\n=== ADAPTIVE REPLACEMENT CACHE (ARC) ===\n";
 
     DisplayTitle(out);
@@ -93,6 +94,7 @@ class Arc : public Cache<Key, Tp> {
   std::list<Key> bottom_2;
   std::unordered_map<Key, ElInfo> data_base_;
 
+  // =============================== ALGORITHM ================================
   Tp FirstTopHit(const Key& key,
                  typename std::unordered_map<Key, ElInfo>::iterator& hash_it) {
     auto list_it = (hash_it->second).list_it;
@@ -109,8 +111,9 @@ class Arc : public Cache<Key, Tp> {
     return list_it->val;
   }
 
-  Tp FirstBottomHit(const Key& key,
-                    typename std::unordered_map<Key, ElInfo>::iterator& hash_it) {
+  Tp FirstBottomHit(
+      const Key& key,
+      typename std::unordered_map<Key, ElInfo>::iterator& hash_it) {
     ++(this->misses_count_);
 
     size_t bottom_1_sz = std::max(kMinSz, bottom_1.size());
@@ -215,6 +218,7 @@ class Arc : public Cache<Key, Tp> {
     }
   }
 
+  // =============================== DUMP_HELP ================================
   void DisplayTitle(std::ostream& out) const {
     size_t top_1_sz = top_1.size();
     size_t top_2_sz = top_2.size();
@@ -281,7 +285,9 @@ class Arc : public Cache<Key, Tp> {
       ++num;
     }
   }
+
+  // ==========================================================================
 };
-} // namespace cache
+}  // namespace cache
 
 #endif
